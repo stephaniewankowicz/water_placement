@@ -273,19 +273,19 @@ s = Structure.fromfile('7KQO.pdb').reorder()
 s = s.extract("e", "H", "!=")
 
 
-
-
-center_coords[tuple(['C', 'C', 'C', 'Cm'])]#[dih_id]
-
-
-
+#GET KDE
 #subset waters
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+s_wat = Structure.fromfile('1cc7.pdb').reorder()
+waters = s_wat.extract("resn", "HOH", "==")
 for c in set(waters.chain):
         for r in set(waters.extract("chain", c, "==").resi):
-            print(waters.extract(f'chain {c} and resi {r}').coor)
+            wat = waters.extract(f'chain {c} and resi {r}').coor
+            dist = np.linalg.norm(out_coords.reshape(-1,3) - wat, axis=1) #look at distance between CA of res and all other residues
+            print(min(dist))
+            #res_names = structure.name[dist < 10.0] #get names of atoms within 10 angstroms of CA of target residue
+            #res_coords = structure.coor[dist < 10.0]
             
-            #get KDE value for this point
-
 
 
 def get_new_coords_og(all_coord_info, 
@@ -485,5 +485,9 @@ out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_c
                                                                        rel_b_list,
                                                                        q_list,                                                                        use_cutoff=False
                                                                         )
+
+
+
+
 
 
