@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-# # Imports 
-
-# In[1]:
 
 
 import os.path
@@ -30,10 +26,6 @@ import itertools
 from DICT4A import DICT4A
 from DICT4A_ALLAT import DICT4A_ALLAT
 
-
-# # functions
-
-# In[55]:
 
 
 def new_dihedral(p):
@@ -66,8 +58,6 @@ def new_dihedral(p):
     dih_ang = np.degrees(np.arctan2(y, x))
     return dih_ang
 
-
-# In[4]:
 
 
 def rigid_transform_3D(A, B):
@@ -114,8 +104,6 @@ def rigid_transform_3D(A, B):
     return R, t
 
 
-# In[ ]:
-
 
 def place_all_centers(s, 
                   all_coord_info, 
@@ -156,13 +144,8 @@ def place_all_centers(s,
             min_d = np.min(cdist(new_center_coords.reshape(-1,3), prot), axis=1)
             # veryyy loose cuttoff here to not include waters
             out_coords = np.append(out_coords, new_center_coords.reshape(-1,3)[np.where(min_d>2.1)])
-            #sz_all = np.append(sz_all, new_spread[np.where(min_d>2.1)])  
-            #out_coords_all[(r.chain[0], r.resi[0])] = new_all_xyz_coords.reshape(-1,3)
-            #out_coords_all_dens[(r.chain[0], r.resi[0])] = dens_v_all
-    return out_coords, out_coords_all, out_coords_all_dens#, sz_all
+    return out_coords, out_coords_all, out_coords_all_dens, sz_all
 
-
-# In[5]:
 
 
 def place_all_wat(s, 
@@ -205,13 +188,10 @@ def place_all_wat(s,
             min_d = np.min(cdist(new_coords.reshape(-1,3), prot), axis=1)
             # veryyy loose cuttoff here to not include waters
             out_coords = np.append(out_coords, new_coords.reshape(-1,3)[np.where(min_d>2.1)])
-            #sz_all = np.append(sz_all, new_spread[np.where(min_d>2.1)])  
             out_coords_all[(r.chain[0], r.resi[0])] = new_all_xyz_coords.reshape(-1,3)
             out_coords_all_dens[(r.chain[0], r.resi[0])] = dens_v_all
-    return out_coords, out_coords_all, out_coords_all_dens#, sz_all
+    return out_coords, out_coords_all, out_coords_all_dens, sz_all
 
-
-# In[6]:
 
 
 def build_center_placement_pdb(xyz_coor, pdb_fn, sphere_size_fn):
@@ -238,8 +218,6 @@ def build_center_placement_pdb(xyz_coor, pdb_fn, sphere_size_fn):
     return
 
 
-# In[7]:
-
 
 def build_density_pdb(xyz_coor, fn, density):
     '''
@@ -264,24 +242,14 @@ def build_density_pdb(xyz_coor, fn, density):
     return
 
 
-# # load in data
-
-# In[22]:
 
 
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water/')
-
-
-# In[23]:
-
-
 cont_dict = np.load('cont_dict.npy',allow_pickle='TRUE').item()
 min_ang = np.load('min_ang.npy',allow_pickle='TRUE').item()
 max_ang = np.load('max_ang.npy',allow_pickle='TRUE').item()
 all_coord_info = np.load('dih_info.npy',allow_pickle='TRUE').item()
 
-
-# In[24]:
 
 
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water/')
@@ -298,57 +266,15 @@ all_xyz_coords = np.load(f'all_xyz_coords_{length}_{pt}{band}.npy',allow_pickle=
 rel_b_list = np.load(f'rel_b_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 q_list = np.load(f'q_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 
-
-# ## Translation of coords to qFit Water
-
-# # Analysis
-
-# In[11]:
-
-
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
 s = Structure.fromfile('7KQO.pdb').reorder()
 s = s.extract("e", "H", "!=")
 
 
-# In[27]:
 
 
 center_coords[tuple(['C', 'C', 'C', 'Cm'])]#[dih_id]
 
-
-# In[60]:
-
-
-for i in range(1, len(list(s.residues))):
-    res = list(s.residues)[i]
-    out_fn = f'7KQO_{res.resn[0]}_{res.chain[0]}{res.resi[0]}.pdb'
-    print(res.resn[0])
-    new_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
-                                                                                       res, 
-                                                                                       center_coords, 
-                                                                                       min_ang, 
-                                                                                       spread, 
-                                                                                       all_density_vals, 
-                                                                                       cont_dict,
-                                                                                       cutoff_idx,
-                                                                                       all_xyz_coords,
-                                                                                       rel_b_list,
-                                                                                       q_list,
-                                                                                       use_cutoff=False
-                                                                                     )
-    #print(dens_v_all)
-    
-
-
-# In[12]:
-
-
-res = list(s.residues)[85]
-print(res.resn)
-
-
-# In[58]:
 
 
 #subset waters
@@ -358,32 +284,6 @@ for c in set(waters.chain):
             
             #get KDE value for this point
 
-
-# In[57]:
-
-
-new_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
-                                                                                       res, 
-                                                                                       center_coords, 
-                                                                                       min_ang, 
-                                                                                       spread, 
-                                                                                       all_density_vals, 
-                                                                                       cont_dict,
-                                                                                       cutoff_idx,
-                                                                                       all_xyz_coords,
-                                                                                       rel_b_list,
-                                                                                       q_list,
-                                                                                       use_cutoff=True
-                                                                                     )
-
-
-# In[64]:
-
-
-new_coords
-
-
-# In[50]:
 
 
 def get_new_coords_og(all_coord_info, 
@@ -563,23 +463,14 @@ def get_new_coords_og(all_coord_info,
     return new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread
 
 
-# In[46]:
+
+# build_density_pdb(new_all_xyz_coords.reshape(-1,3), 
+#                   '4IRX_121_density_75_1.0_2_lys.pdb', 
+#                   np.exp(dens_v_all))
 
 
-build_density_pdb(new_all_xyz_coords.reshape(-1,3), 
-                  '4IRX_121_density_75_1.0_2_lys.pdb', 
-                  np.exp(dens_v_all))
-
-
-# In[61]:
-
-
-build_center_placement_pdb(new_coords.reshape(-1,3),
-                           '7kq0_all.pdb', 'test.pml')
-
-
-# In[65]:
-
+# build_center_placement_pdb(new_coords.reshape(-1,3),
+#                            '7kq0_all.pdb', 'test.pml')
 
 out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_coord_info,
                                                                        center_coords, 
@@ -592,28 +483,5 @@ out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_c
                                                                        rel_b_list,
                                                                        q_list,                                                                        use_cutoff=False
                                                                         )
-
-
-# In[62]:
-
-
-out_coords
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
 
 
