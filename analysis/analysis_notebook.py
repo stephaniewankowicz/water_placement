@@ -488,6 +488,34 @@ out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_c
 
 
 
+##DISTANCE FROM CENTER
 
+out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_centers(s, all_coord_info,
+                                                                       center_coords, 
+                                                                       min_ang, 
+                                                                       spread, 
+                                                                       all_density_vals, 
+                                                                       cont_dict,
+                                                                       cutoff_idx,
+                                                                       all_xyz_coords,
+                                                                       rel_b_list,
+                                                                       q_list,                                                                        use_cutoff=False
+                                                                        )
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+build_center_placement_pdb(out_coords.reshape(-1,3), 'all_water_1cc7.pdb', 
+                           'test.pml')
+
+#read file back in
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+water_og = Structure.fromfile('1cc7.pdb').reorder()
+water_og = water_og.extract('resn', 'HOH', '==')
+water_new = Structure.fromfile('all_water_1cc7.pdb').reorder()
+ratio, deltas = water_RMSD(water_og, water_new)
+file_n = 'ratio_75_3.txt'
+print(ratio)
+with open(file_n, 'w') as file:
+      file.write(str(ratio))
+name = f'{args.directory1}/{args.pdb}_{args.pt}_{args.band}.jpg'
+#plot_waters_detected(deltas, 'ratio_75_3.jpg')
 
 
