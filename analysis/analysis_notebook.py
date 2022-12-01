@@ -148,8 +148,7 @@ def place_all_centers(s,
 
 
 
-def place_all_wat(s, 
-                  all_coord_info, 
+def place_all_wat(all_coord_info, s,
                   center_coords, 
                   min_ang, 
                   spread, 
@@ -166,13 +165,14 @@ def place_all_wat(s,
     prot = s.extract('resn', 'HOH', '!=').coor
     out_coords = np.array([])
     sz_all = np.array([])
-    out_coords_all={}
+    out_coords_all=[]
+    out_coords_all_dict = {}
     out_coords_all_dens={}
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
-            print(r)
             print(r.resn[0])
-            new_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
+            print(r.resi[0])
+            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
                                                                                        min_ang, 
@@ -182,15 +182,17 @@ def place_all_wat(s,
                                                                                        cutoff_idx,
                                                                                        all_xyz_coords,
                                                                                        rel_b_list,
-                                                                                       q_list,
-                                                                                       use_cutoff
-                                                                                     )
-            min_d = np.min(cdist(new_coords.reshape(-1,3), prot), axis=1)
+                                                                                       q_list, s,
+                                                                                       use_cutoff=False)
+            min_d = np.min(cdist(new_center_coords.reshape(-1,3), prot), axis=1)
             # veryyy loose cuttoff here to not include waters
-            out_coords = np.append(out_coords, new_coords.reshape(-1,3)[np.where(min_d>2.1)])
-            out_coords_all[(r.chain[0], r.resi[0])] = new_all_xyz_coords.reshape(-1,3)
+            out_coords = np.append(out_coords, new_center_coords.reshape(-1,3)[np.where(min_d>2.1)])
+            out_coords_all = np.append(out_coords_all, new_all_xyz_coords.reshape(-1,3))
+            #sz_all = np.append(sz_all, new_spread[np.where(min_d>2.1)])  
+            out_coords_all_dict[(r.chain[0], r.resi[0])] = new_all_xyz_coords.reshape(-1,3)
             out_coords_all_dens[(r.chain[0], r.resi[0])] = dens_v_all
     return out_coords, out_coords_all, out_coords_all_dens, sz_all
+
 
 
 
