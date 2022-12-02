@@ -116,27 +116,3 @@ with open(file_n, 'w') as file:
       file.write(str(ratio))
 name = f'{args.directory1}/{args.pdb}_{args.pt}_{args.band}.jpg'
 #plot_waters_detected(deltas, 'ratio_75_3.jpg')
-
-
-def water_RMSD(s, water_new):
-     #water_new = coor of waters detected by our method
-     #s contains the water molecules from the actual structure
-     base_waters = s.extract('resn', 'HOH', '==').coor
-     water_yes = 0
-     water_no = 0
-     all_delta = []
-     for w in base_waters:
-         delta = np.min(np.linalg.norm(w - water_new.coor, axis=1))
-         all_delta = np.append(all_delta,delta)
-         if delta < 0.5:
-            water_yes += 1
-         else:
-            water_no += 1
-     return water_yes/(water_yes + water_no), all_delta
-
-def plot_waters_detected(deltas, output):
-    fig = plt.figure() 
-    plt.hist(deltas, density=True, alpha=.5, bins=30)
-    plt.xlabel('Water Distance', fontsize=20)
-    fig.savefig(output, bbox_inches='tight')
-
