@@ -164,6 +164,7 @@ def place_all_wat_plot(all_coord_info, s,
     out_coords_all_dens={}
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
+            pdb_out = f'{resi.resn[0]}_{resi.resi[0]}_{resi.chain[0]}.pdb'
             new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
@@ -176,7 +177,9 @@ def place_all_wat_plot(all_coord_info, s,
                                                                                        rel_b_list,
                                                                                        q_list, s,
                                                                                        use_cutoff=False)
-            build_density_pdb(xyz_coor, fn, density)
+            build_density_pdb(new_all_xyz_coords.reshape(-1,3), 
+                   pdb_out, 
+                   np.exp(dens_v_all))
             
             
             
