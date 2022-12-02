@@ -283,10 +283,9 @@ waters = s_wat.extract("resn", "HOH", "==")
 for c in set(waters.chain):
         for r in set(waters.extract("chain", c, "==").resi):
             wat = waters.extract(f'chain {c} and resi {r}').coor
-            dist = np.linalg.norm(out_coords.reshape(-1,3) - wat, axis=1) #look at distance between CA of res and all other residues
+            dist = np.linalg.norm(out_coords_all_KDE.reshape(-1,3) - wat, axis=1)
             print(min(dist))
-            #res_names = structure.name[dist < 10.0] #get names of atoms within 10 angstroms of CA of target residue
-            #res_coords = structure.coor[dist < 10.0]
+            print(np.exp(density_all[dist == min(dist)]))
             
 
 
