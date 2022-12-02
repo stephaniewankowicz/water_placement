@@ -415,3 +415,27 @@ def get_new_coords_og(all_coord_info,
             q_all = np.append(q_all, qtemp)
             new_spread = np.append(new_spread, new_spread_tmp)
     return new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread
+
+def water_RMSD(s, water_new):
+     #water_new = coor of waters detected by our method
+     #s contains the water molecules from the actual structure
+     base_waters = s.extract('resn', 'HOH', '==').coor
+     water_yes = 0
+     water_no = 0
+     all_delta = []
+     for w in base_waters:
+         delta = np.min(np.linalg.norm(w - water_new.coor, axis=1))
+         all_delta = np.append(all_delta,delta)
+         if delta < 0.5:
+            water_yes += 1
+         else:
+            water_no += 1
+     return water_yes/(water_yes + water_no), all_delta
+
+def plot_waters_detected(deltas, output):
+    fig = plt.figure() 
+    plt.hist(deltas, density=True, alpha=.5, bins=30)
+    plt.xlabel('Water Distance', fontsize=20)
+    fig.savefig(output, bbox_inches='tight')
+
+
