@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
 
 import os
 import numpy as np
@@ -13,15 +9,8 @@ from sklearn.cluster import MeanShift
 from sklearn.cluster import  estimate_bandwidth
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
-
-
-# In[2]:
-
-
 import pandas as pd
 
-
-# In[3]:
 
 
 def parse_args():
@@ -32,9 +21,6 @@ def parse_args():
     p.add_argument("--length", help="max number of waters to use")
     args = p.parse_args()
     return args
-
-
-# In[19]:
 
 
 def find_density(coords_all, pt, length, band):
@@ -69,8 +55,6 @@ def find_density(coords_all, pt, length, band):
         cutoff_idx : indices of points included in meanshift clustering
     
     '''
-    print('starting')
-    pt = int(pt)
     # initialize dictionaries
     center_coor={} 
     spread={}
@@ -190,46 +174,11 @@ def find_density(coords_all, pt, length, band):
     np.save(f'cutoff_idx_{length}_all.npy', cutoff_idx)
     return coord_set_all, center_coor
 
-
-# In[5]:
-
-
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water')
-
-
-# In[6]:
-
-
 coords_all = np.load('dih_info.npy',allow_pickle='TRUE').item()
-
-
-# In[23]:
-
-
-#coord_set_all[tuple(['C', 'C', 'C', 'Cm'])]
-
-
-# In[230]:
-
-
-#coord_set_all[tuple(['Nm', 'Cm', 'Cm', 'Om'])]
-
-
-# In[20]:
-
 
 #os.chdir('/Users/stephaniewanko/Downloads/water_tracking/test')
 coord_set_all, center_coord = find_density(coords_all, 1.0, 30000, 25)
-
-
-# In[11]:
-
-
-#coord_set_all[tuple(['Om', 'Cm', 'Cm', 'C'])][3]
-
-
-# In[5]:
-
 
 #fig = plt.figure()
 #ax = plt.subplot(111)
@@ -241,15 +190,6 @@ coord_set_all, center_coord = find_density(coords_all, 1.0, 30000, 25)
 #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
 
-# In[ ]:
-
-
-#len(all_density_norm)
-
-
-# In[7]:
-
-
 # fig = plt.figure()
 # ax = plt.subplot(111)
 # for i in range(96):
@@ -258,10 +198,6 @@ coord_set_all, center_coord = find_density(coords_all, 1.0, 30000, 25)
 # box = ax.get_position()
 # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-
-# In[ ]:
-
 
 def main():
     args = parse_args()
@@ -274,6 +210,6 @@ def main():
     os.chdir(out_dir)
     find_density(coords_all, pt, length)
 
-if __name__ == '__main__':
-    main()
+#if __name__ == '__main__':
+#    main()
 
