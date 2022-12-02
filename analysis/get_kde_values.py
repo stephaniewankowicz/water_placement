@@ -43,6 +43,11 @@ all_xyz_coords = np.load(f'all_xyz_coords_{length}_{pt}{band}.npy',allow_pickle=
 rel_b_list = np.load(f'rel_b_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 q_list = np.load(f'q_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 
+#import structures
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+s = Structure.fromfile('1cc7.pdb').extract('record', 'ATOM')
+
+
 out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place_all_wat(all_coord_info,
                                                                        s, 
                                                                        center_coords, 
@@ -57,19 +62,15 @@ out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place
                                                                        use_cutoff=False
                                                                        )
 
-#GET KDE
-#subset waters
-os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
-s_wat = Structure.fromfile('1cc7.pdb').reorder()
-waters = s_wat.extract("resn", "HOH", "==")
-for c in set(waters.chain):
-        for r in set(waters.extract("chain", c, "==").resi):
-            wat = waters.extract(f'chain {c} and resi {r}').coor
+def reassign_bfactors(s, out_coords_all_KDE, density_all, pdb_out):
+    s = Structure.fromfile(s).reorder()
+    s_wat = s.extract('resn', 'HOH', '==')
+    for c in set(s_wat.chain):
+        for r in set(s_wat.extract("chain", c, "==").resi):
+            wat = s_wat.extract(f'chain {c} and resi {r}').coor
             dist = np.linalg.norm(out_coords_all_KDE.reshape(-1,3) - wat, axis=1)
-            print(min(dist))
-            print(np.exp(density_all[dist == min(dist)]))
+            s.extract(f'chain {c} and resi {r}').bfactor = np.exp(density_all[dist == min(dist)])
+    s.tofile(f'{pdb_out}.pdb')
 
-
-
-
-
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+reassign_bfactors('1cc7.pdb', out_coords_all_KDE, density_all, '1cc7_KDE')  
