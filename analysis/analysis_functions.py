@@ -250,7 +250,7 @@ def get_new_coords_og(all_coord_info,
                    cutoff_idx,
                    all_xyz_coords,
                    rel_b_list,
-                   q_list, structure
+                   q_list, structure,
                    use_cutoff=True):
     # initialize output arrays
     '''
@@ -354,7 +354,6 @@ def get_new_coords_og(all_coord_info,
                 if cont_dict[tuple(atom_set_gen)]:
                     bucket = np.array(bucket) + (np.array(bucket)==0)*(len(min_ang[tuple(atom_set_gen)]))
                 dih_id = bucket[0]
-            #print(f'dh id: {dih_id}')
             # this is for if we want to keep only a high density subset
             if use_cutoff:
                 idx = cutoff_idx[tuple(atom_set_gen)][dih_id]
