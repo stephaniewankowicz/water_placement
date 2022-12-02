@@ -474,7 +474,8 @@ def get_new_coords_og(all_coord_info,
 # build_center_placement_pdb(new_coords.reshape(-1,3),
 #                            '7kq0_all.pdb', 'test.pml')
 
-out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_coord_info,
+out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place_all_wat(all_coord_info,
+                                                                       s, 
                                                                        center_coords, 
                                                                        min_ang, 
                                                                        spread, 
@@ -483,8 +484,9 @@ out_coords, out_coords_all, out_coords_all_dens, sz_all = place_all_wat(s, all_c
                                                                        cutoff_idx,
                                                                        all_xyz_coords,
                                                                        rel_b_list,
-                                                                       q_list,                                                                        use_cutoff=False
-                                                                        )
+                                                                       q_list,
+                                                                       use_cutoff=False
+                                                                       )
 
 
 
