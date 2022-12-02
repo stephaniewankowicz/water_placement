@@ -250,7 +250,7 @@ def get_new_coords_og(all_coord_info,
                    cutoff_idx,
                    all_xyz_coords,
                    rel_b_list,
-                   q_list,
+                   q_list, structure
                    use_cutoff=True):
     # initialize output arrays
     '''
@@ -381,6 +381,10 @@ def get_new_coords_og(all_coord_info,
             btemp=[]
             qtemp=[]
             dtemp=[]
+            if structure != None:
+                dist = np.linalg.norm(structure.coor - res_coords[1], axis=1)
+                res_names = structure.name[dist < 10.0] #get names of atoms within 10 angstroms of CA of target residue
+                res_coords = structure.coor[dist < 10.0]
             for wi in wat_centers:
                 # we want to do some stuff to remove center too close to atoms in the residue
                 wat_xyz=(np.dot(R, np.array(wi).T)+t.T)[0]
