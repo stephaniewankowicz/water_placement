@@ -23,16 +23,16 @@ import itertools
 from DICT4A import DICT4A
 from DICT4A_ALLAT import DICT4A_ALLAT
 
-pt=1
-length = 1000
-band = '_25'
-
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water/')
 cont_dict = np.load('cont_dict.npy',allow_pickle='TRUE').item()
 min_ang = np.load('min_ang.npy',allow_pickle='TRUE').item()
 max_ang = np.load('max_ang.npy',allow_pickle='TRUE').item()
 all_coord_info = np.load('dih_info.npy',allow_pickle='TRUE').item()
 
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/norm/')
+pt=75
+length = 30000
+band = '_2'
 center_coords = np.load(f'center_coor_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 cutoff_idx = np.load(f'cutoff_idx_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 cutoff_idx_all = np.load(f'cutoff_idx_{length}_all.npy',allow_pickle='TRUE').item()
