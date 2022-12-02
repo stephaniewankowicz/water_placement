@@ -141,6 +141,49 @@ def place_all_centers(s,
             out_coords = np.append(out_coords, new_center_coords.reshape(-1,3)[np.where(min_d>2.1)])
     return out_coords, out_coords_all, out_coords_all_dens, sz_all
 
+def place_all_wat_plot(all_coord_info, s,
+                  center_coords, 
+                  min_ang, 
+                  spread, 
+                  all_density_vals, 
+                  cont_dict,
+                  cutoff_idx,
+                  all_xyz_coords,
+                  rel_b_list,
+                  q_list,
+                  use_cutoff=False):
+    '''
+    lazy function for placing waters on a whole pdb structure
+    '''
+    prot = s.extract('resn', 'HOH', '!=').coor
+    out_coords = np.array([])
+    sz_all = np.array([])
+    out_coords_all = []
+    density_all = []
+    out_coords_all_dict = {}
+    out_coords_all_dens={}
+    for r in list(s.residues):
+        if r.resn[0] in list(DICT4A.keys()):
+            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
+                                                                                       r, 
+                                                                                       center_coords, 
+                                                                                       min_ang, 
+                                                                                       spread, 
+                                                                                       all_density_vals, 
+                                                                                       cont_dict,
+                                                                                       cutoff_idx,
+                                                                                       all_xyz_coords,
+                                                                                       rel_b_list,
+                                                                                       q_list, s,
+                                                                                       use_cutoff=False)
+            build_density_pdb(xyz_coor, fn, density)
+            
+            
+            
+    return 
+
+
+
 
 
 def place_all_wat(all_coord_info, s,
