@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-import os.path
 import os
 import numpy as np
 import pandas as pd
+from analysis_functions import *	
 from qfit.structure import Structure
 import glob
 from multiprocessing import Pool
