@@ -43,10 +43,25 @@ all_xyz_coords = np.load(f'all_xyz_coords_{length}_{pt}{band}.npy',allow_pickle=
 rel_b_list = np.load(f'rel_b_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 q_list = np.load(f'q_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 
-#import structures
-os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
-s = Structure.fromfile('1cc7.pdb').extract('record', 'ATOM')
 
+def reassign_bfactors(s, out_coords_all_KDE, density_all, pdb_out):
+    s = Structure.fromfile(s).reorder()
+    bfactor_out = pd.DataFrame(columns=['resid','resname','bfactor'])
+    s_wat = s.extract('resn', 'HOH', '==')
+    for c in set(s_wat.chain):
+        for r in set(s_wat.extract("chain", c, "==").resi):
+            wat = s_wat.extract(f'chain {c} and resi {r}').coor
+            dist = np.linalg.norm(out_coords_all_KDE.reshape(-1,3) - wat, axis=1)
+            print(np.exp(density_all[dist == min(dist)]))
+            bfactor_out = bfactor_out.concat({'resid':r,'resname':'HOH','bfactor':np.exp(density_all[dist == min(dist)])[0]},ignore_index=True)
+            s.extract(f'chain {c} and resi {r}').b = np.exp(density_all[dist == min(dist)])
+    s.tofile(f'{pdb_out}.pdb')
+    bfactor_out.to_csv(f'{pdb_out}.csv',index=False)
+
+#GET KDE
+#subset waters
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
+s = Structure.fromfile('/Users/stephaniewanko/Downloads/water_tracking/1cc7.pdb').reorder()
 
 out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place_all_wat(all_coord_info,
                                                                        s, 
@@ -62,15 +77,4 @@ out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place
                                                                        use_cutoff=False
                                                                        )
 
-def reassign_bfactors(s, out_coords_all_KDE, density_all, pdb_out):
-    s = Structure.fromfile(s).reorder()
-    s_wat = s.extract('resn', 'HOH', '==')
-    for c in set(s_wat.chain):
-        for r in set(s_wat.extract("chain", c, "==").resi):
-            wat = s_wat.extract(f'chain {c} and resi {r}').coor
-            dist = np.linalg.norm(out_coords_all_KDE.reshape(-1,3) - wat, axis=1)
-            s.extract(f'chain {c} and resi {r}').bfactor = np.exp(density_all[dist == min(dist)])
-    s.tofile(f'{pdb_out}.pdb')
-
-os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
-reassign_bfactors('1cc7.pdb', out_coords_all_KDE, density_all, '1cc7_KDE')  
+reassign_bfactors('1cc7.pdb', out_coords_all_KDE, density_all, '1cc7_KDE_norm')  
