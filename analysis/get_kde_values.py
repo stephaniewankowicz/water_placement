@@ -52,29 +52,43 @@ def reassign_bfactors(s, out_coords_all_KDE, density_all, pdb_out):
         for r in set(s_wat.extract("chain", c, "==").resi):
             wat = s_wat.extract(f'chain {c} and resi {r}').coor
             dist = np.linalg.norm(out_coords_all_KDE.reshape(-1,3) - wat, axis=1)
-            print(np.exp(density_all[dist == min(dist)]))
-            bfactor_out = bfactor_out.concat({'resid':r,'resname':'HOH','bfactor':np.exp(density_all[dist == min(dist)])[0]},ignore_index=True)
-            s.extract(f'chain {c} and resi {r}').b = np.exp(density_all[dist == min(dist)])
+            #print(np.exp(density_all[dist == min(dist)]))
+            bfactor_out = bfactor_out.append({'resid':r,'resname':'HOH','bfactor':(np.exp(density_all[dist == min(dist)])[0])*1000},ignore_index=True)
+            s.extract(f'chain {c} and resi {r}').b = (np.exp(density_all[dist == min(dist)]))*1000
     s.tofile(f'{pdb_out}.pdb')
     bfactor_out.to_csv(f'{pdb_out}.csv',index=False)
+
+#need to remove water if it has already been used in another protein
+
+def structure_based_KDE(coords_all):
+    kde = KernelDensity(kernel='gaussian', bandwidth=1, rtol=1E-4, atol=1E-4).fit(coords_all) #, sample_weight=norm_val
+    #normalize by the number of protein 4 coor (sep by atom types & dihedrals) we have in our set/total number of proteins 
+    density = kde.score_samples(coords_all) #* norm_factor
+    return density
+
 
 #GET KDE
 #subset waters
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/')
-s = Structure.fromfile('/Users/stephaniewanko/Downloads/water_tracking/1cc7.pdb').reorder()
+s = Structure.fromfile('/Users/stephaniewanko/Downloads/water_tracking/135l.pdb').reorder()
 
-out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place_all_wat(all_coord_info,
-                                                                       s, 
-                                                                       center_coords, 
-                                                                       min_ang, 
-                                                                       spread, 
-                                                                       all_density_vals, 
-                                                                       cont_dict,
-                                                                       cutoff_idx,
-                                                                       all_xyz_coords,
-                                                                       rel_b_list,
-                                                                       q_list,
-                                                                       use_cutoff=False
-                                                                       )
+out_coords_all_KDE = np.load('all_out_coord.npy')
+# out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all = place_all_wat(all_coord_info,
+#                                                                        s, 
+#                                                                        center_coords, 
+#                                                                        min_ang, 
+#                                                                        spread, 
+#                                                                        all_density_vals, 
+#                                                                        cont_dict,
+#                                                                        cutoff_idx,
+#                                                                        all_xyz_coords,
+#                                                                        rel_b_list,
+#                                                                        q_list,
+#                                                                        use_cutoff=False
+#                                                                        )
 
-reassign_bfactors('1cc7.pdb', out_coords_all_KDE, density_all, '1cc7_KDE_norm')  
+#np.save('all_out_coord.npy', out_coords_all_KDE)
+
+density_all = structure_based_KDE(out_coords_all_KDE.reshape(-1,3))
+
+reassign_bfactors('135l.pdb', out_coords_all_KDE, density_all, '135l_KDE_water_norm')  
