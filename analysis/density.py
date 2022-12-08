@@ -19,6 +19,7 @@ def parse_args():
     p.add_argument("--in_dir", help="input directory (where to read files from)")
     p.add_argument("--pt", help="percentile cuttoff for meanshift")
     p.add_argument("--length", help="max number of waters to use")
+    p.add_argument("--band", help="bandwidth for MSE")
     args = p.parse_args()
     return args
 
@@ -69,9 +70,13 @@ def find_density(coords_all, pt, length, band):
     labels_out = []
     #get normalization factor:
     total_protein = 0
+    band = int(band)
+    pt = int(pt)
+    length = int(length)
     for atom_set, atom_set_v in coords_all.items(): #for every 4 sets of atoms
         for dih, coords in atom_set_v.items(): #for every dihedral group of that 4 set of atoms
             total_protein += len(coords[1])
+    print(f'total protein: {total_protein}')
     
     for atom_set, atom_set_v in coords_all.items():
         #print(f'atom set: {atom_set}')
@@ -89,7 +94,7 @@ def find_density(coords_all, pt, length, band):
             center_coor_tmp=[]
             spread_tmp=[]
             #normalization factor
-            #norm_factor = len(coords[1])/total_protein
+            norm_factor = len(coords[1])/total_protein
             # water coordinates
             wat_coords = np.array(list(coords_all[atom_set][dih_assig][2])).flatten().reshape(-1,3)
             # normalized b for waters
@@ -97,29 +102,22 @@ def find_density(coords_all, pt, length, band):
             # occupancy
             q_val = np.array(coords_all[atom_set][dih_assig][4])
             # normalized water
-            #norm_val = np.array(coords_all[atom_set][dih_assig][5])
+            norm_val = np.array(coords_all[atom_set][dih_assig][5])
+            #norm_val = np.ones(len(wat_coords))
+            #norm_val = norm_val * norm_factor
             # this is so we can subsample a b
             sampling = max(1, int(len(wat_coords)/int(length)))
             wat_coords = wat_coords[::sampling]
             rel_b_val = rel_b_val[::sampling]
             q_val = q_val[::sampling]
-            #norm_val = norm_val[::sampling]
+            norm_val = norm_val[::sampling]
             # first, we fo KDE, to find a density value for each point
             # here I have bandwidth = 1 since that generally works and is the default param
+            print(wat_coords.shape)
             kde = KernelDensity(kernel='gaussian', bandwidth=1, rtol=1E-4, atol=1E-4).fit(wat_coords) #, sample_weight=norm_val
             #normalize by the number of protein 4 coor (sep by atom types & dihedrals) we have in our set/total number of proteins 
             density = kde.score_samples(wat_coords) #* norm_factor
-            #PDF = np.exp(kde.score_samples(wat_coords))
-            #density = PDF/PDF.max()
-            #print(len(density))
-            #print(f'density: {density}')
-            #density_all.append(density) 
-            # finding indices of points with density above a specified percentile
-            #print(density)
-            #print(f'percentile: {np.percentile(density, 100)}')
-            idx = np.where(density>np.percentile(density, 0))[0]
-            #print(idx)
-            #print(f'length of idx: {len(idx)}')
+            idx = np.where(density>np.percentile(density, pt))[0]
             cutoff_idx[atom_set][dih_assig]={}
             # just so that we can see the indices of a bunch of percentile cutoffs
             for pt_i in np.arange(0, 100, 10):
@@ -177,8 +175,9 @@ def find_density(coords_all, pt, length, band):
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water')
 coords_all = np.load('dih_info.npy',allow_pickle='TRUE').item()
 
-#os.chdir('/Users/stephaniewanko/Downloads/water_tracking/test')
-coord_set_all, center_coord = find_density(coords_all, 1.0, 30000, 25)
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/non_norm')
+args = parse_args()
+coord_set_all, center_coord = find_density(coords_all, args.pt, args.length, args.band)
 
 #fig = plt.figure()
 #ax = plt.subplot(111)
@@ -199,17 +198,17 @@ coord_set_all, center_coord = find_density(coords_all, 1.0, 30000, 25)
 # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-def main():
-    args = parse_args()
-    out_dir = args.out
-    in_dir = args.in_dir
-    pt = args.pt
-    length = args.length
-    os.chdir(in_dir)
-    coords_all = np.load('dih_info.npy',allow_pickle='TRUE').item()
-    os.chdir(out_dir)
-    find_density(coords_all, pt, length)
+# def main():
+#     args = parse_args()
+#     out_dir = args.out
+#     in_dir = args.in_dir
+#     pt = args.pt
+#     length = args.length
+#     os.chdir(in_dir)
+#     coords_all = np.load('dih_info.npy',allow_pickle='TRUE').item()
+#     os.chdir(out_dir)
+#     find_density(coords_all, pt, length, args.band)
 
 #if __name__ == '__main__':
-#    main()
-
+    #main()
+#
