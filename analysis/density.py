@@ -62,6 +62,7 @@ def find_density(coords_all, pt, length, band):
     dens_all={}
     coord_set_all={}
     rel_b_list_all = {}
+    norm_value_all = {}
     q_list_all={}
     labs={}
     cutoff_idx={}
@@ -82,6 +83,7 @@ def find_density(coords_all, pt, length, band):
         #print(f'atom set: {atom_set}')
         center_coor[atom_set] = {}
         spread[atom_set] = {}
+        norm_value_all[atom_set] = {}
         dens_all[atom_set] = {}
         coord_set_all[atom_set] = {}
         rel_b_list_all[atom_set] = {}
@@ -94,7 +96,7 @@ def find_density(coords_all, pt, length, band):
             center_coor_tmp=[]
             spread_tmp=[]
             #normalization factor
-            norm_factor = len(coords[1])/total_protein
+            #norm_factor = len(coords[1])/total_protein
             # water coordinates
             wat_coords = np.array(list(coords_all[atom_set][dih_assig][2])).flatten().reshape(-1,3)
             # normalized b for waters
@@ -113,10 +115,9 @@ def find_density(coords_all, pt, length, band):
             norm_val = norm_val[::sampling]
             # first, we fo KDE, to find a density value for each point
             # here I have bandwidth = 1 since that generally works and is the default param
-            print(wat_coords.shape)
-            kde = KernelDensity(kernel='gaussian', bandwidth=1, rtol=1E-4, atol=1E-4).fit(wat_coords) #, sample_weight=norm_val
+            kde = KernelDensity(kernel='gaussian', bandwidth=1.0, rtol=1E-4, atol=1E-4).fit(wat_coords, sample_weight=norm_val)
             #normalize by the number of protein 4 coor (sep by atom types & dihedrals) we have in our set/total number of proteins 
-            density = kde.score_samples(wat_coords) #* norm_factor
+            density = kde.score_samples(wat_coords)
             idx = np.where(density>np.percentile(density, pt))[0]
             cutoff_idx[atom_set][dih_assig]={}
             # just so that we can see the indices of a bunch of percentile cutoffs
@@ -140,7 +141,7 @@ def find_density(coords_all, pt, length, band):
                 # cluster to it's cluster center)
                 #print(n_clusters)
                 density_all.append(density)
-                label = str(atom_set) + '_' + str(dih_assig) + '_' + str(len(coords[1]))#str(n_clusters)
+                label = str(atom_set) + '_' + str(dih_assig) + '_' + str(len(coords[1])) #str(n_clusters)
                 labels_out = np.append(labels_out, label)
                 #print(cluster_label)
                 for i, cc in enumerate(cluster_centers):
@@ -155,6 +156,7 @@ def find_density(coords_all, pt, length, band):
                 print('no idx')
                 print(atom_set, dih_assig)
             dens_all[atom_set][dih_assig] = density # density val of all points
+            norm_value_all[atom_set][dih_assig] = norm_val # normalization factor of all points
             coord_set_all[atom_set][dih_assig] = wat_coords # xyz of all points
             rel_b_list_all[atom_set][dih_assig] = rel_b_val # b factors of points
             q_list_all[atom_set][dih_assig] = q_val # occupancy of waters
@@ -163,6 +165,7 @@ def find_density(coords_all, pt, length, band):
     print('saving')
     np.save(f'center_coor_{length}_{pt}_{band}.npy', center_coor) 
     np.save(f'spread_{length}_{pt}_{band}.npy', spread) 
+    np.save(f'norm_val_{length}_{pt}_{band}.npy', norm_value_all) 
     np.save(f'density_vals_{length}_{pt}_{band}.npy', dens_all) 
     np.save(f'all_xyz_coords_{length}_{pt}_{band}.npy', coord_set_all) 
     np.save(f'rel_b_list_{length}_{pt}_{band}.npy', rel_b_list_all) 
@@ -175,7 +178,7 @@ def find_density(coords_all, pt, length, band):
 os.chdir('/Users/stephaniewanko/Downloads/water_tracking/normalized_water')
 coords_all = np.load('dih_info.npy',allow_pickle='TRUE').item()
 
-os.chdir('/Users/stephaniewanko/Downloads/water_tracking/non_norm')
+os.chdir('/Users/stephaniewanko/Downloads/water_tracking/water_norm')
 args = parse_args()
 coord_set_all, center_coord = find_density(coords_all, args.pt, args.length, args.band)
 
