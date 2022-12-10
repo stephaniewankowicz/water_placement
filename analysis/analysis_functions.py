@@ -227,6 +227,7 @@ def place_all_wat(all_coord_info, s,
                                                                                        rel_b_list,
                                                                                        q_list, norm_list, s,
                                                                                        use_cutoff=False)
+
             min_d = np.min(cdist(new_center_coords.reshape(-1,3), prot), axis=1)
             density_all = np.append(density_all, dens_v_all)
             # veryyy loose cuttoff here to not include waters
@@ -340,7 +341,6 @@ def get_new_coords_og(all_coord_info,
     new_center_coords = np.array([])
     new_all_xyz_coords = np.array([])
     dens_v_all = np.array([])
-    new_all_density_vals = np.array([])
     b_all = np.array([])
     q_all = np.array([])
     norm_all = np.array([])
@@ -470,6 +470,9 @@ def get_new_coords_og(all_coord_info,
             norm_all = np.append(norm_all, ntemp)
             new_spread = np.append(new_spread, new_spread_tmp)
     return new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, norm_all, new_spread
+
+def remove_duplicate_rows(array):
+    return np.unique(array, axis=0)
 
 def water_RMSD(s, water_new):
      #water_new = coor of waters detected by our method
