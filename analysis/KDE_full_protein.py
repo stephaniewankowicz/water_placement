@@ -77,8 +77,10 @@ spread = np.load(f'spread_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 all_xyz_coords = np.load(f'all_xyz_coords_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 rel_b_list = np.load(f'rel_b_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 q_list = np.load(f'q_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
+labels = np.load(f'labels_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 
-print(norm_val)
+print(labels)
+
 out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all, norm_all = place_all_wat(all_coord_info,
                                                                        s, 
                                                                        center_coords, 
@@ -92,9 +94,11 @@ out_coords, out_coords_all_KDE, out_coords_all_dens, sz_all, density_all, norm_a
                                                                        q_list, norm_val,
                                                                        use_cutoff=False
                                                                        )
+
+print(out_coords_all_KDE)
 # np.save('all_out_coord.npy', out_coords_all_KDE)
 # np.save('density.npy', density_all)
 
-print(out_coords_all_KDE)
+
 density_all = structure_based_KDE(out_coords_all_KDE.reshape(-1,3), norm_all)
 reassign_bfactors(s, out_coords_all_KDE, density_all, '135l_all_protein_water_norm')
