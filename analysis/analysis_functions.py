@@ -110,7 +110,7 @@ def place_all_centers(s,
                   cutoff_idx,
                   all_xyz_coords,
                   rel_b_list,
-                  q_list,
+                  q_list, norm_list, 
                   use_cutoff=False):
     '''
     lazy function for placing center waters on a whole pdb structure
@@ -123,7 +123,7 @@ def place_all_centers(s,
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
             print(r.resn[0])
-            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
+            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
                                                                                        min_ang, 
@@ -133,13 +133,13 @@ def place_all_centers(s,
                                                                                        cutoff_idx,
                                                                                        all_xyz_coords,
                                                                                        rel_b_list,
-                                                                                       q_list,
-                                                                                       use_cutoff
+                                                                                       q_list, norm_list,
+                                                                                       s, use_cutoff
                                                                                      )
             min_d = np.min(cdist(new_center_coords.reshape(-1,3), prot), axis=1)
             # veryyy loose cuttoff here to not include waters
             out_coords = np.append(out_coords, new_center_coords.reshape(-1,3)[np.where(min_d>2.1)])
-    return out_coords, out_coords_all, out_coords_all_dens, sz_all
+    return out_coords 
 
 def place_all_wat_plot(all_coord_info, s,
                   center_coords, 
@@ -165,7 +165,7 @@ def place_all_wat_plot(all_coord_info, s,
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
             pdb_out = f'{pdb_name}_{r.resn[0]}_{r.resi[0]}_{r.chain[0]}.pdb'
-            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, new_spread = get_new_coords_og(all_coord_info,
+            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
                                                                                        min_ang, 
@@ -177,7 +177,7 @@ def place_all_wat_plot(all_coord_info, s,
                                                                                        rel_b_list,
                                                                                        q_list, s,
                                                                                        use_cutoff=False)
-            build_density_pdb(new_all_xyz_coords.reshape(-1,3), 
+    build_density_pdb(new_all_xyz_coords.reshape(-1,3), 
                    pdb_out, 
                    np.exp(dens_v_all))
             
