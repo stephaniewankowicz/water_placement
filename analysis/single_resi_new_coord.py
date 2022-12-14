@@ -4,24 +4,6 @@ import numpy as np
 import pandas as pd
 from analysis_functions import *	
 from qfit.structure import Structure
-import glob
-from multiprocessing import Pool
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.spatial.distance import cdist
-from scipy.spatial.transform import Rotation as R
-from scipy.signal import argrelextrema
-from scipy import stats
-import sklearn
-from sklearn.cluster import MeanShift
-from sklearn.cluster import  estimate_bandwidth
-from sklearn.model_selection  import LeaveOneOut
-from sklearn.neighbors import KernelDensity
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, train_test_split
-import itertools
-from DICT4A import DICT4A
-from DICT4A_ALLAT import DICT4A_ALLAT
 
 
 def remove_overlapping_wat(out_coords_all_KDE, density_all):
@@ -66,15 +48,17 @@ q_list = np.load(f'q_list_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 labels = np.load(f'labels_{length}_{pt}{band}.npy',allow_pickle='TRUE').item()
 
 
-new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
+new_center_coords, new_all_xyz_coords, dens_v_all, resi_norm= get_new_coords_og(all_coord_info,
                                                                                        res, 
                                                                                        center_coords, 
-                                                                                       min_ang, 
-                                                                                       spread, 
+                                                                                       min_ang,  
                                                                                        all_density_vals, 
                                                                                        cont_dict,
                                                                                        cutoff_idx,
                                                                                        all_xyz_coords,
-                                                                                       rel_b_list,
-                                                                                       q_list, norm_val, s,
+                                                                                       norm_val, s,
                                                                                        use_cutoff=False)
+
+#save the new coordinates
+np.save(f'water_coords_{res.resn[0]}_{res.resi[0]}.npy', new_all_xyz_coords)
+np.save(f'water_density_{res.resn[0]}_{res.resi[0]}.npy', dens_v_all)
