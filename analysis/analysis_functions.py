@@ -123,7 +123,7 @@ def place_all_centers(s,
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
             print(r.resn[0])
-            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
+            new_center_coords, new_all_xyz_coords, dens_v_all, resi_norm = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
                                                                                        min_ang, 
@@ -165,7 +165,7 @@ def place_all_wat_plot(all_coord_info, s,
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
             pdb_out = f'{pdb_name}_{r.resn[0]}_{r.resi[0]}_{r.chain[0]}.pdb'
-            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
+            new_center_coords, new_all_xyz_coords, dens_v_all, resi_norm = get_new_coords_og(all_coord_info,
                                                                                        r, 
                                                                                        center_coords, 
                                                                                        min_ang, 
@@ -203,41 +203,19 @@ def place_all_wat(all_coord_info, s,
     '''
     lazy function for placing waters on a whole pdb structure
     '''
-    prot = s.extract('resn', 'HOH', '!=').coor
-    out_coords = np.array([])
-    sz_all = np.array([])
     out_coords_all = []
-    density_all = []
     norm_all = []
-    out_coords_all_dict = {}
-    out_coords_all_dens={}
+    resi_list = []
     for r in list(s.residues):
         if r.resn[0] in list(DICT4A.keys()):
-            #print(r.resn[0])
-            print(r.resi[0])
-            new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, resi_norm, new_spread = get_new_coords_og(all_coord_info,
-                                                                                       r, 
-                                                                                       center_coords, 
-                                                                                       min_ang, 
-                                                                                       spread, 
-                                                                                       all_density_vals, 
-                                                                                       cont_dict,
-                                                                                       cutoff_idx,
-                                                                                       all_xyz_coords,
-                                                                                       rel_b_list,
-                                                                                       q_list, norm_list, s,
-                                                                                       use_cutoff=False)
+            resi_list.append(r)
+    main_inputs = [(all_coord_info, r, min_ang, cont_dict, cutoff_idx, all_xyz_coords, norm_list, s, use_cutoff) for r in resi_list]
+    with Pool(processes=4) as p:
+        new_all_xyz_coords, resi_norm = zip(*p.starmap(get_new_all_coords_paralell, main_inputs))
+        #out_coords_all = [new_all_xyz_coords.reshape(-1,3) for sublist in arrays for new_all_xyz_coords.reshape(-1,3) in sublist]
+        norm_all = [resi_norm for sublist in arrays for resi_norm in sublist]
+    return out_coords_all, norm_all
 
-            min_d = np.min(cdist(new_center_coords.reshape(-1,3), prot), axis=1)
-            density_all = np.append(density_all, dens_v_all)
-            # veryyy loose cuttoff here to not include waters
-            out_coords = np.append(out_coords, new_center_coords.reshape(-1,3)[np.where(min_d>2.1)])
-            out_coords_all = np.append(out_coords_all, new_all_xyz_coords.reshape(-1,3))
-            #sz_all = np.append(sz_all, new_spread[np.where(min_d>2.1)])  
-            out_coords_all_dict[(r.chain[0], r.resi[0])] = new_all_xyz_coords.reshape(-1,3)
-            out_coords_all_dens[(r.chain[0], r.resi[0])] = dens_v_all
-            norm_all = np.append(norm_all, resi_norm)
-    return out_coords, out_coords_all, out_coords_all_dens, sz_all, density_all, norm_all
 
 
 
@@ -289,17 +267,149 @@ def build_density_pdb(xyz_coor, fn, density):
     file.close()
     return
 
+def get_new_all_coords_paralell(all_coord_info, 
+                   res, 
+                   min_ang, 
+                   cont_dict,
+                   cutoff_idx,
+                   all_xyz_coords,
+                   norm_list, structure,
+                   use_cutoff=True):
+    # initialize output arrays
+    '''
+    Function for rotating and translating the water library onto a residue. 
+    Parameters
+    ----------
+        all_coord_info : dict with xyz coords for example 4 atoms, all 4 atoms, and all waters
+        res : residue you are rotating and translating onto
+        center_coords : xyz of centers of clusters
+        min_ang : local minima(s) of dihedral distribution 
+        all_density_vals : density value for each water point
+        cont_dict : if peak continues from 180 to -180
+        cutoff_idx : indices of water with density above a specified percentile
+        all_xyz_coords : all xyz coords of waters
+        use_cutoff : boolean, whether or not to include all waters, or only
+            ones above a percentile in density value.
+    Returns
+    -------
+        new_center_coords : rotated and translated centers of clusters
+        new_all_xyz_coords : rotated and translated waters
+        dens_v_all : all density values
+    '''
+    dict_dist = {
+        'Cm' : 3.0,
+        'Nm' : 2.4,
+        'Om' : 2.4,
+        'S' : 2.4,
+        'C' : 3.0,
+        'N' : 2.4,
+        'O' : 2.4,
+        'H' : 1.2
+    }
+    new_center_coords = np.array([])
+    new_all_xyz_coords = np.array([])
+    dens_v_all = np.array([])
+    norm_all = np.array([])
+    all_altlocs = np.unique(res.altloc) 
+    for a in all_altlocs:
+        poss_idx = np.where(np.array((res.altloc=='')*1 + (res.altloc==a)*1)>=1)[0] 
+        name2idx = dict(zip(res.name[poss_idx], poss_idx))
+        res_coords = res.coor[poss_idx]
+        res_names = res.name[poss_idx]
+        for atom_set_spec, atom_set_gen in DICT4A[res.resn[0]].items(): # go through each set of 4 atoms in this residue
+            n_idx=[]
+            contin = True
+            all_atoms = [y for x in atom_set_spec
+                                     for y in (x if isinstance(x, tuple) else (x,))]
+            # this is to determine the dihedral angle and coordinates of atoms
+            if 'YR1' in atom_set_gen or 'FR1' in atom_set_gen or 'WR1' in atom_set_gen or 'PR1' in atom_set_gen or 'HR1' in atom_set_gen:
+                coords = []
+                all_coords = []
+                for at in atom_set_spec:
+                    if len(at)>2: # if part of ring
+                        ring_idx = [name2idx[e] for e in at]
+                        if len(ring_idx) == len(at):
+                            ring_coords = res.coor[ring_idx]
+                            ring_com = sum(ring_coords)/len(ring_coords) 
+                            coords.append(ring_com)
+                            for rc in ring_coords:
+                                all_coords.append(rc)
+                    else: # otherwise we deal with it normally
+                        coords.append(res.coor[name2idx[at]])
+                        all_coords.append(res.coor[name2idx[at]])
+                dih_val = new_dihedral(np.array(coords))
+                bucket=[]
+            else:
+                for at_s in all_atoms:
+                    if at_s in list(res.name):
+                        n_idx.append(list(res.name).index(at_s))
+                    else:
+                        contin = False
+                if contin == True:
+                    coords = res.coor[n_idx]
+                    all_coords = coords
+                    dih_val = new_dihedral(np.array(coords))
+                    bucket=[]
+            # if dih cluster is just one peak, then we don't need to worry about buckets
+            if len(np.array(min_ang[tuple(atom_set_gen)])) == 0:
+                dih_id = 0
+            # otherwise determine the right bucket
+            else:
+                diff_from_mins = dih_val - np.array(min_ang[tuple(atom_set_gen)])
+                closest_min_idx = np.argsort(abs(diff_from_mins))[0]
+                if diff_from_mins[closest_min_idx]>0:
+                    bucket.append(closest_min_idx+1)
+                else:
+                    bucket.append(closest_min_idx)
+                if cont_dict[tuple(atom_set_gen)]:
+                    bucket = np.array(bucket) + (np.array(bucket)==0)*(len(min_ang[tuple(atom_set_gen)]))
+                dih_id = bucket[0]
+
+            # this is for if we want to keep only a high density subset
+            if use_cutoff:
+                idx = cutoff_idx[tuple(atom_set_gen)][dih_id]
+                all_wat_xyz_coords = np.array(all_xyz_coords[tuple(atom_set_gen)][dih_id])[idx]
+                nvals = np.array(norm_list[tuple(atom_set_gen)][dih_id])[idx]
+            else:
+                all_wat_xyz_coords = np.array(all_xyz_coords[tuple(atom_set_gen)][dih_id])
+                nvals = np.array(norm_list[tuple(atom_set_gen)][dih_id])
+            p1 = all_coord_info[tuple(atom_set_gen)][dih_id][0]
+            
+            R, t = rigid_transform_3D(np.array(p1).T, np.array(coords).T)
+            new_all_xyz_coords_tmp=[]
+            ntemp = []
+            if structure != None:
+                dist = np.linalg.norm(structure.coor - res_coords[1], axis=1)
+                res_names = structure.name[dist < 10.0] #get names of atoms within 10 angstroms of CA of target residue
+                res_coords = structure.coor[dist < 10.0] #get coords of atoms within 10 angstroms of CA of target residue
+            for wi, nv in zip(all_wat_xyz_coords, nvals): 
+                # we want to do some stuff to remove waters too close to atoms in the residue
+                wat_xyz=(np.dot(R, np.array(wi).T)+t.T)[0]
+                dist2wat = cdist([wat_xyz], res_coords)[0]
+                prod = np.full((dist2wat.shape), True)
+                for d, rn in zip(dist2wat, res_names):
+                    non_clash_tmp = (d>dict_dist[rn[0]])                        
+                    prod = prod*non_clash_tmp
+                cutoff = np.where(prod)[0]
+                if len(cutoff)==len(res_coords):
+                    new_all_xyz_coords_tmp.append(wat_xyz)
+                    ntemp.append(nv)
+            # add to output lists
+            new_all_xyz_coords = np.append(new_all_xyz_coords, new_all_xyz_coords_tmp)
+            norm_all = np.append(norm_all, ntemp)
+    return new_all_xyz_coords, norm_all 
+
+
+
 def get_new_coords_og(all_coord_info, 
                    res, 
                    center_coords, 
                    min_ang, 
-                   spread, 
                    all_density_vals, 
                    cont_dict,
                    cutoff_idx,
                    all_xyz_coords,
-                   rel_b_list,
-                   q_list, norm_list, structure,
+                   norm_list, structure,
                    use_cutoff=True):
     # initialize output arrays
     '''
@@ -349,7 +459,6 @@ def get_new_coords_og(all_coord_info,
     for a in all_altlocs:
         poss_idx = np.where(np.array((res.altloc=='')*1 + (res.altloc==a)*1)>=1)[0] 
         name2idx = dict(zip(res.name[poss_idx], poss_idx))
-      #  name2idx = dict(zip(res.name[poss_idx], np.arange(len(res.name[poss_idx]))))
         res_coords = res.coor[poss_idx]
         res_names = res.name[poss_idx]
         for atom_set_spec, atom_set_gen in DICT4A[res.resn[0]].items(): # go through each set of 4 atoms in this residue
@@ -406,20 +515,20 @@ def get_new_coords_og(all_coord_info,
                 idx = cutoff_idx[tuple(atom_set_gen)][dih_id]
                 all_wat_xyz_coords = np.array(all_xyz_coords[tuple(atom_set_gen)][dih_id])[idx]
                 dens_vals = np.array(all_density_vals[tuple(atom_set_gen)][dih_id])[idx]
-                bvals = np.array(rel_b_list[tuple(atom_set_gen)][dih_id])[idx]
+                #bvals = np.array(rel_b_list[tuple(atom_set_gen)][dih_id])[idx]
                 nvals = np.array(norm_list[tuple(atom_set_gen)][dih_id])[idx]
-                qvals = np.array(q_list[tuple(atom_set_gen)][dih_id])[idx]
+                #qvals = np.array(q_list[tuple(atom_set_gen)][dih_id])[idx]
             else:
                 all_wat_xyz_coords = np.array(all_xyz_coords[tuple(atom_set_gen)][dih_id])
                 dens_vals = np.array(all_density_vals[tuple(atom_set_gen)][dih_id])
-                bvals = np.array(rel_b_list[tuple(atom_set_gen)][dih_id])
+                #bvals = np.array(rel_b_list[tuple(atom_set_gen)][dih_id])
                 nvals = np.array(norm_list[tuple(atom_set_gen)][dih_id])
-                qvals = np.array(q_list[tuple(atom_set_gen)][dih_id])
+                #qvals = np.array(q_list[tuple(atom_set_gen)][dih_id])
             p1 = all_coord_info[tuple(atom_set_gen)][dih_id][0]
             
             try:
                 wat_centers = center_coords[tuple(atom_set_gen)][dih_id]
-                sp = spread[tuple(atom_set_gen)][dih_id]
+                #sp = spread[tuple(atom_set_gen)][dih_id]
             except:
                 continue
             R, t = rigid_transform_3D(np.array(p1).T, np.array(coords).T)
@@ -446,7 +555,7 @@ def get_new_coords_og(all_coord_info,
                 if len(cutoff)==len(res_coords):
                     new_center_coords_tmp.append(wat_xyz)
                     #new_spread_tmp.append(si)
-            for wi, bv, dv, qv, nv in zip(all_wat_xyz_coords, bvals, dens_vals, qvals, nvals): 
+            for wi, dv, nv in zip(all_wat_xyz_coords, dens_vals, nvals): 
                 # we want to do some stuff to remove waters too close to atoms in the residue
                 wat_xyz=(np.dot(R, np.array(wi).T)+t.T)[0]
                 dist2wat = cdist([wat_xyz], res_coords)[0]
@@ -457,19 +566,17 @@ def get_new_coords_og(all_coord_info,
                 cutoff = np.where(prod)[0]
                 if len(cutoff)==len(res_coords):
                     new_all_xyz_coords_tmp.append(wat_xyz)
-                    btemp.append(bv)
                     dtemp.append(dv)
                     ntemp.append(nv)
-                    qtemp.append(qv)
             # add to output lists
             new_center_coords = np.append(new_center_coords, new_center_coords_tmp)
             new_all_xyz_coords = np.append(new_all_xyz_coords, new_all_xyz_coords_tmp)
             dens_v_all = np.append(dens_v_all, dtemp)
-            b_all = np.append(b_all, btemp)
-            q_all = np.append(q_all, qtemp)
+            #b_all = np.append(b_all, btemp)
+            #q_all = np.append(q_all, qtemp)
             norm_all = np.append(norm_all, ntemp)
-            new_spread = np.append(new_spread, new_spread_tmp)
-    return new_center_coords, new_all_xyz_coords, dens_v_all, b_all, q_all, norm_all, new_spread
+            #new_spread = np.append(new_spread, new_spread_tmp)
+    return new_center_coords, new_all_xyz_coords, dens_v_all, norm_all #, b_all, q_all, new_spread
 
 def remove_duplicate_rows(array):
     return np.unique(array, axis=0)
